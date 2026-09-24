@@ -1,0 +1,40 @@
+{
+  "name": "@hyperwatch/dashboard",
+  "version": "0.1.0",
+  "description": "Web dashboard for Hyperwatch: live logs, addresses, signatures, identities and pipeline status",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hyperwatch/dashboard.git"
+  },
+  "type": "module",
+  "main": "index.cjs",
+  "files": [
+    "dist",
+    "index.cjs"
+  ],
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "prepack": "npm run build",
+    "prettier": "prettier \"**/*.@(js|jsx|cjs|json|md|css|html)\"",
+    "prettier:check": "npm run prettier -- --list-different",
+    "prettier:write": "npm run prettier -- --write"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "tailwindcss": "^4.0.0",
+    "vite": "^6.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.1.0",
+    "prettier": "^3.9.9"
+  }
+}
