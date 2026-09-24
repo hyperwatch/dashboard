@@ -8,6 +8,7 @@ import DataTable from '../components/DataTable';
 import SignaturePanel from '../components/SignaturePanel';
 import { FirewallBadge } from '../components/FirewallActions';
 import { useFirewallLookup, userAgentFromHeaders } from '../lib/firewall';
+import useUrlState from '../hooks/useUrlState';
 
 const baseColumns = [
   { key: 'signature', label: 'Signature', render: (v) => truncate(v, 60) },
@@ -77,7 +78,7 @@ const timeWindows = ['15m', '24h'];
 export default function Signatures() {
   const { apiUrl } = useApi();
   const { filter, setFilter, timeWindow, setTimeWindow } = useView();
-  const [sort, setSort] = useState('count15m');
+  const [sort, setSort] = useUrlState('sort', 'count15m');
   const [selectedSignature, setSelectedSignature] = useState(null);
   const handleClose = useCallback(() => setSelectedSignature(null), []);
   const handleRowClick = useCallback((row) => setSelectedSignature(row), []);

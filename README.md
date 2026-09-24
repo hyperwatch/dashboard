@@ -55,7 +55,15 @@ HYPERWATCH_URL=http://localhost:3000 npm run dev
 Vite serves the dashboard at `http://localhost:5173/dashboard` and proxies everything else
 (HTTP and WebSockets) to `HYPERWATCH_URL` (default `http://localhost:3000`).
 
-To try it in an app before publishing, `npm link` this directory from the app.
+When the app serves the dashboard from a linked copy of this repo (`npm link`), rebuild on every
+change instead and reload the page:
+
+```sh
+npm run watch
+```
+
+This keeps working across several instances (each serves `dist/`), while `npm run dev` gives hot
+reload against a single one.
 
 ## Publishing
 

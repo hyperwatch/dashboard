@@ -6,6 +6,7 @@ import { useView } from '../lib/ViewContext';
 import { applyTimeWindow } from '../lib/sort';
 import DataTable from '../components/DataTable';
 import IdentityPanel from '../components/IdentityPanel';
+import useUrlState from '../hooks/useUrlState';
 
 const baseColumns = [
   {
@@ -76,7 +77,7 @@ const timeWindows = ['15m', '24h'];
 export default function Identities() {
   const { apiUrl } = useApi();
   const { filter, setFilter, timeWindow, setTimeWindow } = useView();
-  const [sort, setSort] = useState('count15m');
+  const [sort, setSort] = useUrlState('sort', 'count15m');
   const [selectedIdentity, setSelectedIdentity] = useState(null);
   const columns = [...baseColumns, ...timeColumns[timeWindow]];
   const handleClose = useCallback(() => setSelectedIdentity(null), []);

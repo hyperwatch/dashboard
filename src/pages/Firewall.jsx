@@ -6,6 +6,7 @@ import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
 import { formatNumber } from '../lib/format';
 import { useFirewallLists, useFirewallEdit } from '../lib/firewall';
+import useUrlState from '../hooks/useUrlState';
 
 const TYPE_LABELS = { ip: 'IP', user_agent: 'User-Agent' };
 
@@ -273,7 +274,7 @@ function ListModal({ list, onClose, onChange }) {
 
 export default function Firewall() {
   const { apiUrl } = useApi();
-  const [sort, setSort] = useState('count15m');
+  const [sort, setSort] = useUrlState('sort', 'count15m');
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedList = searchParams.get('list');
   const { lists, error, loading, refresh } = useFirewallLists(5000);
@@ -331,12 +332,26 @@ export default function Firewall() {
   ];
 
   const handleClose = useCallback(() => {
-    setSearchParams({}, { replace: true });
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        params.delete('list');
+        return params;
+      },
+      { replace: true }
+    );
   }, [setSearchParams]);
 
   const handleRowClick = useCallback(
     (row) => {
-      setSearchParams({ list: row.id }, { replace: true });
+      setSearchParams(
+        (prev) => {
+          const params = new URLSearchParams(prev);
+          params.set('list', row.id);
+          return params;
+        },
+        { replace: true }
+      );
     },
     [setSearchParams]
   );

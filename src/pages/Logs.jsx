@@ -1,12 +1,13 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect } from 'react';
 import usePolling from '../hooks/usePolling';
 import useWebSocket from '../hooks/useWebSocket';
 import { useApi } from '../lib/InstanceContext';
 import LogEntry from '../components/LogEntry';
+import useUrlState from '../hooks/useUrlState';
 
 export default function Logs() {
   const { apiUrl, path } = useApi();
-  const [node, setNode] = useState('main');
+  const [node, setNode] = useUrlState('node', 'main');
   const { data: nodes } = usePolling(apiUrl('/nodes.json'), 30000);
   const { entries, connected, paused, setPaused, resume, clear } = useWebSocket(
     path(`/logs/${node}`),

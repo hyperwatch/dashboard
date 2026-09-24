@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import usePolling from '../hooks/usePolling';
 import { useApi } from '../lib/InstanceContext';
 import { truncate } from '../lib/format';
 import DataTable from '../components/DataTable';
 import StatusBadge from '../components/StatusBadge';
+import useUrlState from '../hooks/useUrlState';
 
 function scoreBadge(score) {
   if (score == null) return '—';
@@ -52,7 +52,7 @@ const columns = [
 
 export default function Fingerprint() {
   const { apiUrl } = useApi();
-  const [sort, setSort] = useState('count15m');
+  const [sort, setSort] = useUrlState('sort', 'count15m');
   const url = apiUrl('/fingerprint.json', { sort, limit: 100 });
   const { data, error, loading, retry } = usePolling(url, 5000);
 

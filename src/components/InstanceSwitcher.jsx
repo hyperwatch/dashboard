@@ -1,3 +1,4 @@
+import { useHref, useLocation } from 'react-router-dom';
 import { useInstance } from '../lib/InstanceContext';
 
 function isCurrent(instance, current) {
@@ -10,13 +11,14 @@ function isCurrent(instance, current) {
 }
 
 // Links to the sibling instances described in /dashboard.json, keeping the
-// current page. Each instance serves its own dashboard.
+// current page and its settings (query string). Each instance serves its own
+// dashboard. useLocation re-renders the links on every navigation.
 export default function InstanceSwitcher() {
   const { name, instances } = useInstance();
+  const { pathname, search } = useLocation();
+  const here = useHref({ pathname, search }); // includes the /dashboard basename
 
   if (instances.length === 0) return null;
-
-  const here = `${window.location.pathname}${window.location.search}`;
 
   return (
     <div className="px-2 py-2 border-b border-border">

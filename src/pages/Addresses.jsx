@@ -8,6 +8,7 @@ import DataTable from '../components/DataTable';
 import AddressPanel from '../components/AddressPanel';
 import { FirewallBadge } from '../components/FirewallActions';
 import { useFirewallLookup } from '../lib/firewall';
+import useUrlState from '../hooks/useUrlState';
 
 const baseColumns = [
   {
@@ -95,7 +96,7 @@ const timeWindows = ['15m', '24h'];
 export default function Addresses() {
   const { apiUrl } = useApi();
   const { filter, setFilter, timeWindow, setTimeWindow } = useView();
-  const [sort, setSort] = useState('count15m');
+  const [sort, setSort] = useUrlState('sort', 'count15m');
   const [selectedAddress, setSelectedAddress] = useState(null);
   const handleClose = useCallback(() => setSelectedAddress(null), []);
   const handleRowClick = useCallback((row) => setSelectedAddress(row), []);
