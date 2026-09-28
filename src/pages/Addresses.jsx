@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import usePolling from '../hooks/usePolling';
+import { withLastFields } from '../lib/api';
 import { useApi } from '../lib/InstanceContext';
 import { truncate, formatLastSeen, countryFlag } from '../lib/format';
 import { useView } from '../lib/ViewContext';
@@ -102,7 +103,7 @@ export default function Addresses() {
   const handleRowClick = useCallback((row) => setSelectedAddress(row), []);
   const activeSort = applyTimeWindow(sort, timeWindow);
   const url = apiUrl('/addresses.json', { sort: activeSort, limit: 100 });
-  const { data, error, loading, retry } = usePolling(url, 5000);
+  const { data, error, loading, retry } = usePolling(url, 5000, withLastFields);
   // Refreshed on every poll, so edits made in the panel show up
   const firewall = useFirewallLookup(
     'ip',

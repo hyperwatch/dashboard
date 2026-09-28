@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
-export default function usePolling(url, interval = 5000) {
+// transform(json): applied to each response, e.g. withLastFields
+export default function usePolling(url, interval = 5000, transform) {
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const urlRef = useRef(url);
+  const transformRef = useRef(transform);
+  transformRef.current = transform;
   const controllerRef = useRef(null);
   const hasDataRef = useRef(false);
 
@@ -16,7 +19,7 @@ export default function usePolling(url, interval = 5000) {
       const res = await fetch(fetchUrl, { signal: controller.signal });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      setData(json);
+      setData(transformRef.current ? transformRef.current(json) : json);
       hasDataRef.current = true;
       setError(null);
     } catch (err) {
