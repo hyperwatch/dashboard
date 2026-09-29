@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import usePolling from '../hooks/usePolling';
+import { withLastFields } from '../lib/api';
 import { useApi } from '../lib/InstanceContext';
 import { truncate, formatLastSeen, countryFlag } from '../lib/format';
 import { useView } from '../lib/ViewContext';
@@ -84,7 +85,7 @@ export default function Identities() {
   const handleRowClick = useCallback((row) => setSelectedIdentity(row), []);
   const activeSort = applyTimeWindow(sort, timeWindow);
   const url = apiUrl('/identities.json', { sort: activeSort, limit: 100 });
-  const { data, error, loading, retry } = usePolling(url, 5000);
+  const { data, error, loading, retry } = usePolling(url, 5000, withLastFields);
 
   const filtered =
     data && filter !== 'all'

@@ -1,4 +1,5 @@
 import usePolling from '../hooks/usePolling';
+import { withLastFields } from '../lib/api';
 import { useApi } from '../lib/InstanceContext';
 import { formatNumber, truncate } from '../lib/format';
 import StatCard from '../components/StatCard';
@@ -26,7 +27,8 @@ export default function Overview() {
   const { apiUrl } = useApi();
   const { data: addresses } = usePolling(
     apiUrl('/addresses.json', { sort: 'count15m', limit: 5 }),
-    5000
+    5000,
+    withLastFields
   );
   const { data: firewall } = usePolling(
     apiUrl('/firewall.json', { sort: 'count15m', limit: 5 }),
@@ -39,7 +41,8 @@ export default function Overview() {
   );
   const { data: identities } = usePolling(
     apiUrl('/identities.json', { sort: 'count15m', limit: 20 }),
-    5000
+    5000,
+    withLastFields
   );
 
   const totalRequests15m =
