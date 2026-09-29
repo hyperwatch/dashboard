@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom';
 import Nav from './Nav';
-import InstanceSwitcher from './InstanceSwitcher';
 
 export default function Layout() {
   return (
@@ -12,7 +11,6 @@ export default function Layout() {
             HYPERWATCH
           </h1>
         </div>
-        <InstanceSwitcher />
         <Nav />
       </aside>
 

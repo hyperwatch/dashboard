@@ -27,24 +27,6 @@ hyperwatch.app.api.get('/dashboard/*splat', (req, res) =>
 
 Then open `http://localhost:<port>/dashboard`.
 
-### Several instances
-
-If you run several Hyperwatch processes, each one serves its own dashboard. To link them from the
-sidebar, serve `/dashboard.json` on each:
-
-```json
-{
-  "name": "api",
-  "instances": [
-    { "name": "api", "label": "API", "url": "http://localhost:3360" },
-    { "name": "frontend", "label": "Frontend", "url": "http://localhost:3300" }
-  ]
-}
-```
-
-`name` is the current instance. Links keep the current page. Without `/dashboard.json` there is no
-switcher.
-
 ## Development
 
 ```sh
@@ -62,8 +44,8 @@ change instead and reload the page:
 npm run watch
 ```
 
-This keeps working across several instances (each serves `dist/`), while `npm run dev` gives hot
-reload against a single one.
+This rebuilds `dist/` on every change (reload the page to see it), while `npm run dev` gives hot
+reload through the Vite dev server.
 
 ## Publishing
 

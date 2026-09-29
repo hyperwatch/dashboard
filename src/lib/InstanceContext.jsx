@@ -2,10 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { buildUrl } from './api';
 
 // The dashboard is served by a Hyperwatch process (the "instance") and talks
-// to it on bare paths, same origin. The host application can describe sibling
-// instances in /dashboard.json ({ name, instances: [{ name, label, url }] });
-// they are shown as links in the sidebar. Without it, there is no switcher.
-const EMPTY = { name: null, instances: [] };
+// to it on bare paths, same origin.
 
 // Pages backed by optional Hyperwatch modules, shown only when the instance
 // answers on their endpoint. One cheap request each, once per page load.
@@ -23,16 +20,12 @@ async function fetchJson(path) {
   }
 }
 
-const InstanceContext = createContext({ ...EMPTY, modules: {} });
+const InstanceContext = createContext({ modules: {} });
 
 export function InstanceProvider({ children }) {
-  const [config, setConfig] = useState(EMPTY);
   const [modules, setModules] = useState({});
 
   useEffect(() => {
-    fetchJson('/dashboard.json').then(
-      (data) => data && setConfig({ ...EMPTY, ...data })
-    );
     Promise.all(
       Object.entries(OPTIONAL).map(async ([name, path]) => [
         name,
@@ -41,7 +34,7 @@ export function InstanceProvider({ children }) {
     ).then((entries) => setModules(Object.fromEntries(entries)));
   }, []);
 
-  const value = useMemo(() => ({ ...config, modules }), [config, modules]);
+  const value = useMemo(() => ({ modules }), [modules]);
 
   return (
     <InstanceContext.Provider value={value}>
