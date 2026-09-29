@@ -109,8 +109,10 @@ export default function Addresses() {
     data?.map((a) => a.address),
     data
   );
+  // The xbl field only exists when the instance runs the dnsbl module
+  const hasXbl = data?.some((a) => 'xbl' in a);
   const columns = [
-    ...baseColumns,
+    ...baseColumns.filter((column) => column.key !== 'xbl' || hasXbl),
     ...timeColumns[timeWindow],
     {
       key: 'firewall',
