@@ -10,6 +10,8 @@ export default function useWebSocket(
   const wsRef = useRef(null);
   const pausedRef = useRef(false);
   const bufferRef = useRef([]);
+  // Entries received but not shown yet, see addEntry()
+  const pendingRef = useRef([]);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -27,6 +29,7 @@ export default function useWebSocket(
     let reconnectTimer;
     let flushTimer;
     const pending = [];
+    pendingRef.current = pending;
     let cancelled = false;
 
     // Logs come one message each, often in bursts: those of the same moment
@@ -158,9 +161,12 @@ export default function useWebSocket(
     }
   }, [maxEntries]);
 
+  // Entries waiting to be shown are dropped too, or they would come back
+  // right after
   const clear = useCallback(() => {
     setEntries([]);
     bufferRef.current = [];
+    pendingRef.current.length = 0;
   }, []);
 
   return { entries, connected, paused, setPaused, resume, clear };
