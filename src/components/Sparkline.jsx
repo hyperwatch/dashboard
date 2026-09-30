@@ -47,7 +47,7 @@ export default function Sparkline({
     ctx.lineWidth = 1.5;
 
     let x = 0;
-    let y = h - data[0] / ystep;
+    let y = h - data[0] / ystep + 2;
     ctx.moveTo(x, y);
 
     for (let i = 1; i < data.length; i++) {
@@ -59,5 +59,5 @@ export default function Sparkline({
     ctx.stroke();
   }, [data, color, width, height, minimumLength, minimumMax]);
 
-  return <canvas ref={canvasRef} className="inline-block" />;
+  return <canvas ref={canvasRef} className="inline-block align-middle" />;
 }

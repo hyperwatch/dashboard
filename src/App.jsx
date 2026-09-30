@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import { ViewProvider } from './lib/ViewContext';
 import { InstanceProvider } from './lib/InstanceContext';
@@ -11,7 +11,7 @@ import Fingerprint from './pages/Fingerprint';
 import Firewall from './pages/Firewall';
 import Logs from './pages/Logs';
 import Status from './pages/Status';
-import Nodes from './pages/Nodes';
+import Pipeline from './pages/Pipeline';
 
 export default function App() {
   return (
@@ -27,7 +27,11 @@ export default function App() {
               <Route path="fingerprint" element={<Fingerprint />} />
               <Route path="firewall" element={<Firewall />} />
               <Route path="logs" element={<Logs />} />
-              <Route path="nodes" element={<Nodes />} />
+              <Route path="pipeline" element={<Pipeline />} />
+              <Route
+                path="nodes"
+                element={<Navigate to="/pipeline" replace />}
+              />
               <Route path="status" element={<Status />} />
             </Route>
           </Routes>

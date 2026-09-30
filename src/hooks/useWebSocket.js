@@ -10,6 +10,8 @@ export default function useWebSocket(
   const wsRef = useRef(null);
   const pausedRef = useRef(false);
   const bufferRef = useRef([]);
+  // Entries received but not shown yet, see addEntry()
+  const pendingRef = useRef([]);
 
   useEffect(() => {
     pausedRef.current = paused;
@@ -25,22 +27,32 @@ export default function useWebSocket(
 
     let ws;
     let reconnectTimer;
+    let flushTimer;
+    const pending = [];
+    pendingRef.current = pending;
     let cancelled = false;
 
+    // Logs come one message each, often in bursts: those of the same moment
+    // are added together, in one render
     function addEntry(entry) {
       if (filter && !filter(entry)) return;
+      pending.push(entry);
+      if (!flushTimer) flushTimer = setTimeout(flush, 50);
+    }
+
+    // New entries go to the end of the list: newest at the bottom. While
+    // paused, they wait in the buffer.
+    function flush() {
+      flushTimer = null;
+      const batch = pending.splice(0);
       if (pausedRef.current) {
-        bufferRef.current.push(entry);
-        if (bufferRef.current.length > maxEntries) {
-          bufferRef.current = bufferRef.current.slice(-maxEntries);
-        }
-      } else {
-        // New entries go to the end of the list: newest at the bottom.
-        setEntries((prev) => {
-          const next = [...prev, entry];
-          return next.length > maxEntries ? next.slice(-maxEntries) : next;
-        });
+        bufferRef.current = [...bufferRef.current, ...batch].slice(-maxEntries);
+        return;
       }
+      setEntries((prev) => {
+        const next = [...prev, ...batch];
+        return next.length > maxEntries ? next.slice(-maxEntries) : next;
+      });
     }
 
     function connectWs() {
@@ -133,6 +145,7 @@ export default function useWebSocket(
     return () => {
       cancelled = true;
       clearTimeout(reconnectTimer);
+      clearTimeout(flushTimer);
       ws?.close();
     };
   }, [url, maxEntries, historyUrl, filter]);
@@ -148,9 +161,12 @@ export default function useWebSocket(
     }
   }, [maxEntries]);
 
+  // Entries waiting to be shown are dropped too, or they would come back
+  // right after
   const clear = useCallback(() => {
     setEntries([]);
     bufferRef.current = [];
+    pendingRef.current.length = 0;
   }, []);
 
   return { entries, connected, paused, setPaused, resume, clear };
