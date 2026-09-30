@@ -2,6 +2,7 @@ import usePolling from '../hooks/usePolling';
 import { withLastFields } from '../lib/api';
 import { useApi } from '../lib/InstanceContext';
 import { formatNumber, truncate } from '../lib/format';
+import { activityPoints, periodSpeed } from '../lib/activity';
 import StatCard from '../components/StatCard';
 import Sparkline from '../components/Sparkline';
 import PieChart from '../components/PieChart';
@@ -35,9 +36,11 @@ export default function Overview() {
     5000
   );
   const { data: status } = usePolling(apiUrl('/status.json'), 10000);
+  // Formatted rows don't have the counters the sparkline needs, only raw
+  // entries do
   const { data: addressesRaw } = usePolling(
     apiUrl('/addresses.json', { sort: 'count15m', limit: 5, raw: true }),
-    5000
+    30000
   );
   const { data: identities } = usePolling(
     apiUrl('/identities.json', { sort: 'count15m', limit: 20 }),
@@ -53,8 +56,10 @@ export default function Overview() {
     firewall?.reduce((sum, f) => sum + (f.count15m || 0), 0) || 0;
   const pipelineCount = status?.length || 0;
 
-  // Extract sparkline data from raw addresses response
-  const sparklineData = addressesRaw?.[0]?.activity?.map((v) => v ?? 0) || [];
+  // Requests per minute of the top addresses together
+  const sparklineData = (addressesRaw || [])
+    .map((entry) => activityPoints(periodSpeed(entry, '15m')))
+    .reduce((sum, points) => points.map((n, i) => n + (sum[i] || 0)), []);
 
   // Aggregate identities by name for pie chart
   const identityChartData = (() => {
@@ -88,7 +93,7 @@ export default function Overview() {
           value={totalRequests15m}
           color="text-cyan"
         >
-          {sparklineData.length > 0 && (
+          {sparklineData.length > 1 && (
             <Sparkline
               data={sparklineData}
               color="#4cdeea"

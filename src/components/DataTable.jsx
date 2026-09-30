@@ -1,4 +1,4 @@
-import { formatNumber } from '../lib/format';
+import { formatCell } from '../lib/format';
 
 const numericFields = new Set([
   'count15m',
@@ -32,9 +32,11 @@ export default function DataTable({
   onSort,
   onRowClick,
   rowKey,
+  rowClass,
+  empty = 'No entries yet: they appear as logs come in.',
 }) {
   if (!data || data.length === 0) {
-    return <div className="text-text-dim text-center py-12">No data</div>;
+    return <div className="text-text-dim text-center py-12">{empty}</div>;
   }
 
   // Keys must be unique, otherwise React mismatches rows when the sort changes
@@ -67,7 +69,7 @@ export default function DataTable({
                 >
                   {label}
                   {active ? (
-                    <span className="text-cyan ml-1">↓</span>
+                    <span className="text-cyan ml-1">▾</span>
                   ) : sortable ? (
                     <span className="text-text-dim/30 ml-1">↕</span>
                   ) : null}
@@ -86,7 +88,7 @@ export default function DataTable({
               <tr
                 key={seenCount ? `${base}#${seenCount}` : base}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={`group border-b border-border/50 hover:bg-bg-card/50 transition-colors${onRowClick ? ' cursor-pointer' : ''}`}
+                className={`group border-b border-border/50 hover:bg-bg-card/50 transition-colors${onRowClick ? ' cursor-pointer' : ''} ${rowClass?.(row) || ''}`}
               >
                 {cols.map((col) => {
                   const key = typeof col === 'string' ? col : col.key;
@@ -105,10 +107,10 @@ export default function DataTable({
                       {render
                         ? render(value, row)
                         : isNumeric(key)
-                          ? formatNumber(value)
+                          ? formatCell(value)
                           : value != null
                             ? String(value)
-                            : '—'}
+                            : ''}
                     </td>
                   );
                 })}

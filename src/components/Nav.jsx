@@ -1,20 +1,21 @@
 import { NavLink, useSearchParams } from 'react-router-dom';
 import { useInstance } from '../lib/InstanceContext';
 
+// The order of Hyperwatch's HTML navigation, after the overview. Signatures
+// has a page (/signatures) but no link, like there.
 const links = [
   { to: '/', label: 'Overview' },
+  { to: '/status', label: 'Status' },
   { to: '/addresses', label: 'Addresses' },
-  { to: '/signatures', label: 'Signatures' },
   { to: '/identities', label: 'Identities' },
+  { to: '/logs', label: 'Logs' },
+  { to: '/pipeline', label: 'Pipeline' },
   // Only when the instance runs the matching Hyperwatch module
   { to: '/fingerprint', label: 'Fingerprint', module: 'fingerprint' },
   { to: '/firewall', label: 'Firewall', module: 'firewall' },
-  { to: '/logs', label: 'Logs' },
-  { to: '/nodes', label: 'Nodes' },
-  { to: '/status', label: 'Status' },
 ];
 
-const viewParams = ['filter', 'tw'];
+const viewParams = ['filter', 'period'];
 
 export default function Nav() {
   const [searchParams] = useSearchParams();

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { execTimeColor, countryFlag } from '../lib/format';
+import { execTimeColor, formatExecTime, countryFlag } from '../lib/format';
 import { FirewallBadge } from './FirewallActions';
 
 // DevTools-style detail of one logged request. Only what Hyperwatch logs is
@@ -135,7 +135,7 @@ function HeadersTab({ entry }) {
               'Execution time',
               entry.executionTime != null && (
                 <span className={execTimeColor(entry.executionTime)}>
-                  {entry.executionTime}ms
+                  {formatExecTime(entry.executionTime)}
                 </span>
               ),
             ],

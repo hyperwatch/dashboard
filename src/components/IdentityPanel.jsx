@@ -1,7 +1,9 @@
 import { useRef, useEffect, useCallback } from 'react';
 import useWebSocket from '../hooks/useWebSocket';
-import { formatNumber, countryFlag } from '../lib/format';
-import LogEntry, { matchAddress } from './LogEntry';
+import { formatNumber, countryFlag, parseHostname } from '../lib/format';
+import { matchAddress } from './LogEntry';
+import LogStream from './LogStream';
+import Hostname from './Hostname';
 import { useApi } from '../lib/InstanceContext';
 
 export default function IdentityPanel({ row, onClose }) {
@@ -32,9 +34,6 @@ export default function IdentityPanel({ row, onClose }) {
     filter: filterFn,
   });
 
-  const scrollRef = useRef(null);
-  const stickRef = useRef(true);
-
   useEffect(() => {
     function handleKeyDown(e) {
       if (e.key === 'Escape') onClose();
@@ -55,18 +54,6 @@ export default function IdentityPanel({ row, onClose }) {
       document.removeEventListener('mousedown', handleMouseDown);
     };
   }, [onClose]);
-
-  useEffect(() => {
-    if (stickRef.current && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [entries]);
-
-  function handleScroll() {
-    const el = scrollRef.current;
-    if (!el) return;
-    stickRef.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
-  }
 
   return (
     <div
@@ -99,7 +86,9 @@ export default function IdentityPanel({ row, onClose }) {
             </div>
           )}
           {identity && (
-            <div className="text-cyan">{row.hostname || address}</div>
+            <div>
+              <Hostname {...parseHostname(row.hostname || address)} />
+            </div>
           )}
           {row.country && (
             <div>
@@ -142,23 +131,11 @@ export default function IdentityPanel({ row, onClose }) {
           oldest → newest
         </span>
       </div>
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-auto px-3 pb-2 min-h-0"
-      >
-        {entries.length === 0 ? (
-          <div className="text-text-dim text-center py-6 text-xs">
-            {connected ? 'Waiting for logs…' : 'Connecting…'}
-          </div>
-        ) : (
-          entries.map((entry, i) => (
-            <div key={i} className="text-[11px] leading-5 text-text">
-              <LogEntry entry={entry} />
-            </div>
-          ))
-        )}
-      </div>
+      <LogStream
+        entries={entries}
+        connected={connected}
+        className="px-3 pb-2 text-[11px]"
+      />
     </div>
   );
 }

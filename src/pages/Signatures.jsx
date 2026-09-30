@@ -1,89 +1,69 @@
 import { useState, useCallback } from 'react';
 import usePolling from '../hooks/usePolling';
-import { useApi } from '../lib/InstanceContext';
-import { truncate, formatLastSeen } from '../lib/format';
+import { useApi, useInstance } from '../lib/InstanceContext';
+import { truncate } from '../lib/format';
 import { useView } from '../lib/ViewContext';
-import { applyTimeWindow } from '../lib/sort';
+import { lastSeenColumn, periodColumns } from '../lib/columns';
 import DataTable from '../components/DataTable';
 import SignaturePanel from '../components/SignaturePanel';
+import Switches from '../components/Switches';
 import { FirewallBadge } from '../components/FirewallActions';
 import { useFirewallLookup, userAgentFromHeaders } from '../lib/firewall';
 import useUrlState from '../hooks/useUrlState';
 
-const baseColumns = [
-  { key: 'signature', label: 'Signature', render: (v) => truncate(v, 60) },
-  {
-    key: 'identity',
-    label: 'Identity',
-    render: (v) =>
-      v ? <span className="text-magenta">{truncate(v, 30)}</span> : '',
-  },
-  { key: 'agent', label: 'Agent', render: (v) => truncate(v, 50) },
-  {
-    key: 'lastAddress',
-    label: 'Latest address',
-    render: (v) => (v ? <span className="text-cyan">{v}</span> : '—'),
-  },
-  {
-    key: 'score',
-    label: 'Score',
-    sortable: true,
-    render: (v) => {
-      if (!v) return '—';
-      const n = parseFloat(v);
-      const color =
-        n >= 0.8 ? 'text-red' : n <= 0.2 ? 'text-green' : 'text-yellow';
-      return <span className={color}>{v}</span>;
-    },
-  },
-  {
-    key: 'lastSeen',
-    label: 'Last seen',
-    sortable: true,
-    sortKey: 'latest',
-    render: (v) => <span className="text-text-dim">{formatLastSeen(v)}</span>,
-  },
-];
+// Addresses and headers are lists joined by <br>, shown one per line
+const lines = (text) => (text ? text.split('<br>') : []);
 
-const timeColumns = {
-  '15m': [
-    { key: 'addressCount15m', label: 'Addresses', sortable: true },
-    { key: 'count15m', label: 'Count', sortable: true },
-    { key: '2xx15m', label: '2xx', sortable: true },
-    { key: '4xx15m', label: '4xx', sortable: true },
-    {
-      key: 'execTime15m',
-      label: 'Exec time',
-      sortable: true,
-      render: (v) => v || '—',
-    },
-  ],
-  '24h': [
-    { key: 'addressCount24h', label: 'Addresses', sortable: true },
-    { key: 'count24h', label: 'Count', sortable: true },
-    { key: '2xx24h', label: '2xx', sortable: true },
-    { key: '4xx24h', label: '4xx', sortable: true },
-    {
-      key: 'execTime24h',
-      label: 'Exec time',
-      sortable: true,
-      render: (v) => v || '—',
-    },
-  ],
+const signatureColumn = { key: 'signature', label: 'Signature' };
+
+const identityColumn = {
+  key: 'identity',
+  label: 'Identity',
+  render: (v) =>
+    v ? <span className="text-magenta">{truncate(v, 30)}</span> : '',
 };
 
-const filters = ['all', 'identified', 'unidentified'];
-const timeWindows = ['15m', '24h'];
+// Up to 10 addresses seen in the last 24 hours
+const addressesColumn = {
+  key: 'addresses',
+  label: 'Addresses',
+  render: (v) => lines(v).map((address) => <div key={address}>{address}</div>),
+};
+
+const lastAddressColumn = {
+  key: 'lastAddress',
+  label: 'Latest address',
+  render: (v) => (v ? <span className="text-cyan">{v}</span> : ''),
+};
+
+// No agent column: the User-Agent header is among the headers
+const headersColumn = {
+  key: 'headers',
+  label: 'Headers',
+  render: (v) => (
+    <div className="whitespace-normal break-all min-w-80">
+      {lines(v).map((header, i) => {
+        const index = header.indexOf(':');
+        return (
+          <div key={i}>
+            <span className="text-text-dim">{header.slice(0, index + 1)}</span>
+            {header.slice(index + 1)}
+          </div>
+        );
+      })}
+    </div>
+  ),
+};
 
 export default function Signatures() {
   const { apiUrl } = useApi();
-  const { filter, setFilter, timeWindow, setTimeWindow } = useView();
-  const [sort, setSort] = useUrlState('sort', 'count15m');
+  const { modules } = useInstance();
+  const { period } = useView();
+  const [sort, setSort] = useUrlState('sort', `count${period}`);
   const [selectedSignature, setSelectedSignature] = useState(null);
   const handleClose = useCallback(() => setSelectedSignature(null), []);
   const handleRowClick = useCallback((row) => setSelectedSignature(row), []);
-  const activeSort = applyTimeWindow(sort, timeWindow);
-  const url = apiUrl('/signatures.json', { sort: activeSort, limit: 100 });
+  const url = apiUrl('/signatures.json', { sort, limit: 100 });
   const { data, error, loading, retry } = usePolling(url, 5000);
   // Signatures can't be firewalled; show whether their User-Agent is on a list.
   // Refreshed on every poll, so edits made in the panel show up.
@@ -92,22 +72,24 @@ export default function Signatures() {
     data?.map((s) => userAgentFromHeaders(s.headers)),
     data
   );
+  const firewallColumn = {
+    key: 'firewall',
+    label: '',
+    render: (v, row) => (
+      <FirewallBadge match={firewall[userAgentFromHeaders(row.headers)]} />
+    ),
+  };
   const columns = [
-    ...baseColumns,
-    ...timeColumns[timeWindow],
-    {
-      key: 'firewall',
-      label: '',
-      render: (v, row) => (
-        <FirewallBadge match={firewall[userAgentFromHeaders(row.headers)]} />
-      ),
-    },
+    signatureColumn,
+    identityColumn,
+    { key: `addressCount${period}`, label: 'Address count', sortable: true },
+    addressesColumn,
+    lastAddressColumn,
+    headersColumn,
+    ...periodColumns(period),
+    lastSeenColumn(data),
+    ...(modules.firewall ? [firewallColumn] : []),
   ];
-
-  const filtered =
-    data && filter !== 'all'
-      ? data.filter((s) => (filter === 'identified' ? s.identity : !s.identity))
-      : data;
 
   return (
     <div className="relative h-full">
@@ -116,36 +98,7 @@ export default function Signatures() {
           <h2 className="text-xs font-bold text-text-dim uppercase tracking-widest">
             Signatures
           </h2>
-          <div className="flex gap-1">
-            {filters.map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`px-2 py-0.5 text-[10px] rounded-full capitalize cursor-pointer transition-colors ${
-                  filter === f
-                    ? 'bg-cyan/20 text-cyan'
-                    : 'text-text-dim hover:text-text'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-1 ml-auto">
-            {timeWindows.map((tw) => (
-              <button
-                key={tw}
-                onClick={() => setTimeWindow(tw)}
-                className={`px-2 py-0.5 text-[10px] rounded-full cursor-pointer transition-colors ${
-                  timeWindow === tw
-                    ? 'bg-cyan/20 text-cyan'
-                    : 'text-text-dim hover:text-text'
-                }`}
-              >
-                {tw}
-              </button>
-            ))}
-          </div>
+          <Switches />
         </div>
         {error && (
           <div className="text-red mb-4">
@@ -159,9 +112,9 @@ export default function Signatures() {
           <div className="text-text-dim animate-pulse">Loading…</div>
         ) : (
           <DataTable
-            data={filtered}
+            data={data}
             columns={columns}
-            sort={activeSort}
+            sort={sort}
             onSort={setSort}
             onRowClick={handleRowClick}
           />

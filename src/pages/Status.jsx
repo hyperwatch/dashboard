@@ -1,19 +1,17 @@
 import usePolling from '../hooks/usePolling';
 import { useApi } from '../lib/InstanceContext';
 import DataTable from '../components/DataTable';
-import StatusBadge from '../components/StatusBadge';
 
 const columns = [
   { key: 'name', label: 'Name' },
   { key: 'type', label: 'Type' },
-  {
-    key: 'status',
-    label: 'Status',
-    render: (v) => <StatusBadge value={v} />,
-  },
   { key: 'count15m', label: '15m' },
   { key: 'count24h', label: '24h' },
+  { key: 'status', label: 'Status' },
 ];
+
+// Entries without traffic in the last 15 minutes are grey
+const rowClass = (row) => (row.count15m ? '' : 'text-text-dim');
 
 export default function Status() {
   const { apiUrl } = useApi();
@@ -23,7 +21,7 @@ export default function Status() {
   return (
     <div>
       <h2 className="text-xs font-bold text-text-dim uppercase tracking-widest mb-3">
-        Pipeline Status
+        Status
       </h2>
       {error && (
         <div className="text-red mb-4">
@@ -36,7 +34,7 @@ export default function Status() {
       {loading && !data ? (
         <div className="text-text-dim animate-pulse">Loading…</div>
       ) : (
-        <DataTable data={data} columns={columns} />
+        <DataTable data={data} columns={columns} rowClass={rowClass} />
       )}
     </div>
   );

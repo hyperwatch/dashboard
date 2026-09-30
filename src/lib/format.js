@@ -2,17 +2,14 @@ export function formatNumber(n) {
   if (n == null) return '—';
   if (typeof n !== 'number') n = Number(n);
   if (isNaN(n)) return '—';
-  return n.toLocaleString();
+  return n.toLocaleString('en-US');
 }
 
-export function formatDuration(ms) {
-  if (ms == null) return '—';
-  if (ms < 1) return '<1ms';
-  if (ms < 1000) return `${Math.round(ms)}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  const m = Math.floor(ms / 60000);
-  const s = Math.round((ms % 60000) / 1000);
-  return `${m}m${s}s`;
+// A table cell, like in Hyperwatch's HTML tables: thousands separators
+// (1,234), empty for 0
+export function formatCell(n) {
+  const number = Number(n);
+  return number ? number.toLocaleString('en-US') : '';
 }
 
 export function truncate(str, max = 60) {
@@ -24,37 +21,45 @@ export function classNames(...args) {
   return args.filter(Boolean).join(' ');
 }
 
-export function formatLastSeen(iso) {
-  if (!iso) return '—';
-  const now = new Date();
-  const date = new Date(iso);
-  const today = now.toISOString().slice(0, 10);
-  const day = iso.slice(0, 10);
-  if (day === today) return iso.slice(11, 19);
-  const yesterday = new Date(now);
-  yesterday.setDate(yesterday.getDate() - 1);
-  if (day === yesterday.toISOString().slice(0, 10)) return 'yesterday';
-  const diffDays = Math.floor((now - date) / 86400000);
-  return `${diffDays}d ago`;
+// lastSeen is ISO 8601 (UTC). Tables show "2026-09-25 12:51:07", or only the
+// time when every row was seen today, like in the logs.
+export function allSeenToday(rows) {
+  const today = new Date().toISOString().slice(0, 10);
+  return rows.every((row) => !row.lastSeen || row.lastSeen.startsWith(today));
 }
 
-// Exec time thresholds (aligned with pipeline node filters in frontend.js)
-export const EXEC_SLOW_MS = 300;
-export const EXEC_EXTRA_SLOW_MS = 1000;
+export function formatLastSeen(iso, timeOnly) {
+  if (!iso) return '';
+  const time = iso.slice(11, 19);
+  return timeOnly ? time : `${iso.slice(0, 10)} ${time}`;
+}
 
-export function execTimeColor(val) {
-  if (!val) return '';
-  const n = parseFloat(val);
-  if (isNaN(n)) return '';
-  const ms =
-    typeof val === 'string' && val.includes('m')
-      ? n * 60000
-      : typeof val === 'number'
-        ? val
-        : n * 1000;
-  if (ms <= EXEC_SLOW_MS) return 'text-green';
-  if (ms >= EXEC_EXTRA_SLOW_MS) return 'text-red';
-  return 'text-yellow';
+// Execution time of a request, in milliseconds: the colors of Hyperwatch's
+// log lines
+export function execTimeColor(ms) {
+  if (!ms) return '';
+  return ms <= 100 ? 'text-green' : ms >= 1000 ? 'text-red' : 'text-yellow';
+}
+
+export function formatExecTime(ms) {
+  return `${Number(ms).toLocaleString('en-US')}ms`;
+}
+
+// The agent of a log: its parsed family and version, else the raw User-Agent
+// (null when the request had none)
+export function formatAgent(agent, userAgent) {
+  if (agent?.family && agent.family !== 'Other') {
+    const { family, major, minor } = agent;
+    if (minor) return `${family}/${major}.${minor}`;
+    return major ? `${family}/${major}` : family;
+  }
+  return userAgent || null;
+}
+
+// Hostnames confirmed by a forward DNS lookup end with '+' in aggregators
+export function parseHostname(text) {
+  const verified = typeof text === 'string' && text.endsWith('+');
+  return { value: verified ? text.slice(0, -1) : text, verified };
 }
 
 // Regional-indicator flag emoji for a two-letter country code

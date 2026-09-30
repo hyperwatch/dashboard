@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback } from 'react';
 import usePolling from '../hooks/usePolling';
 import useWebSocket from '../hooks/useWebSocket';
 import { useApi } from '../lib/InstanceContext';
-import LogEntry from '../components/LogEntry';
+import LogStream from '../components/LogStream';
 
 function formatRate(rate) {
   if (rate >= 1000) return `${(rate / 1000).toFixed(1)}k/s`;
@@ -15,6 +15,36 @@ function formatCount(count) {
   if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
   if (count >= 1000) return `${(count / 1000).toFixed(1)}k`;
   return `${count}`;
+}
+
+// The address of this instance, for http or ws
+function baseAddress(scheme) {
+  const secure = window.location.protocol === 'https:' ? 's' : '';
+  return `${scheme}${secure}://${window.location.host}`;
+}
+
+// Inputs report where they listen as "http://__HOST__/input/log": only the
+// client knows the host it reaches the instance on
+function fillHost(status) {
+  return status.replace(/\b(http|ws):\/\/__HOST__/g, (match, scheme) =>
+    baseAddress(scheme)
+  );
+}
+
+// Log streams label their step "http:/logs/main" or "ws:/logs/main": shown
+// as full addresses, the HTTP one linking to the stream
+function StreamLabel({ label }) {
+  const match = /^(http|ws):\/(.*)$/.exec(label);
+  if (!match) return label;
+  const [, scheme, path] = match;
+  const address = `${baseAddress(scheme)}/${path}`;
+  return scheme === 'http' ? (
+    <a href={`/${path}`} className="underline">
+      {address}
+    </a>
+  ) : (
+    address
+  );
 }
 
 function TreeNode({ node, onSelect }) {
@@ -32,17 +62,23 @@ function TreeNode({ node, onSelect }) {
         onClick={isNamed ? () => onSelect(node.name) : undefined}
         className={`py-0.5 text-xs flex items-center gap-1.5 ${isNamed ? 'cursor-pointer hover:bg-bg-card/50 rounded px-1 -ml-1' : ''}`}
       >
-        {node.name && <span className="text-cyan font-bold">{node.name}</span>}
-        <span
-          className={
-            node.name || node.label ? 'text-text-dim' : 'text-text-dim/50'
-          }
-        >
-          [{node.op}]
-        </span>
+        {node.name && <strong>{node.name}</strong>}
+        {node.op && (
+          <span
+            className={
+              node.name || node.label ? 'text-text-dim' : 'text-text-dim/50'
+            }
+          >
+            [{node.op}]
+          </span>
+        )}
         {node.module && <span className="text-green">({node.module})</span>}
-        {node.fnName && <span className="text-text-dim">.{node.fnName}</span>}
-        {node.label && <span className="text-yellow italic">{node.label}</span>}
+        {node.fnName && <span className="text-cyan">{node.fnName}</span>}
+        {node.label && (
+          <span className="text-yellow" onClick={(e) => e.stopPropagation()}>
+            <StreamLabel label={node.label} />
+          </span>
+        )}
         {hasTraffic && (
           <span className="ml-auto flex items-center gap-2 tabular-nums text-[10px]">
             <span className="text-text-dim">{formatCount(node.count)}</span>
@@ -63,22 +99,34 @@ function TreeNode({ node, onSelect }) {
   );
 }
 
+// An input: its status, what it accepted and rejected in the last 15 minutes,
+// then the steps it runs before its logs reach the pipeline
+function Input({ input, onSelect }) {
+  return (
+    <div className="pl-4 border-l border-border">
+      <div className="py-0.5 text-xs flex items-center gap-1.5">
+        <strong>{input.name}</strong>
+        <span className="text-text-dim">[input]</span>
+        {input.status && (
+          <span className="text-green">({fillHost(input.status)})</span>
+        )}
+        <span>
+          accepted: {input.accepted}, rejected: {input.rejected}
+        </span>
+      </div>
+      {input.tree && <TreeNode node={input.tree} onSelect={onSelect} />}
+    </div>
+  );
+}
+
 function NodePanel({ nodeName, onClose }) {
   const { path } = useApi();
   const panelRef = useRef(null);
-  const scrollRef = useRef(null);
-  const stickRef = useRef(true);
 
   const { entries, connected } = useWebSocket(path(`/logs/${nodeName}`), {
     maxEntries: 200,
     historyUrl: path(`/history/${nodeName}.json`),
   });
-
-  useEffect(() => {
-    if (stickRef.current && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [entries]);
 
   useEffect(() => {
     function handleKeyDown(e) {
@@ -94,12 +142,6 @@ function NodePanel({ nodeName, onClose }) {
       document.removeEventListener('mousedown', handleMouseDown);
     };
   }, [onClose]);
-
-  function handleScroll() {
-    const el = scrollRef.current;
-    if (!el) return;
-    stickRef.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 20;
-  }
 
   return (
     <div
@@ -125,28 +167,16 @@ function NodePanel({ nodeName, onClose }) {
           ×
         </button>
       </div>
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-auto px-3 pb-2 min-h-0"
-      >
-        {entries.length === 0 ? (
-          <div className="text-text-dim text-center py-6 text-xs">
-            {connected ? 'Waiting for logs…' : 'Connecting…'}
-          </div>
-        ) : (
-          entries.map((entry, i) => (
-            <div key={i} className="text-[11px] leading-5 text-text">
-              <LogEntry entry={entry} />
-            </div>
-          ))
-        )}
-      </div>
+      <LogStream
+        entries={entries}
+        connected={connected}
+        className="px-3 pb-2 text-[11px]"
+      />
     </div>
   );
 }
 
-export default function Nodes() {
+export default function Pipeline() {
   const { apiUrl } = useApi();
   const {
     data: tree,
@@ -160,7 +190,7 @@ export default function Nodes() {
     <div className="relative h-full">
       <div className="flex items-center gap-3 mb-3">
         <h2 className="text-xs font-bold text-text-dim uppercase tracking-widest">
-          Pipeline Nodes
+          Pipeline
         </h2>
       </div>
       {error && <div className="text-red mb-4 text-xs">Error: {error}</div>}
@@ -168,34 +198,14 @@ export default function Nodes() {
         <div className="text-text-dim animate-pulse">Loading…</div>
       ) : tree ? (
         <div className="bg-bg-card rounded border border-border p-3 overflow-auto">
-          {tree.inputs && tree.inputs.length > 0 && (
-            <div className="pl-4 border-l border-border mb-1">
+          {tree.inputs?.length > 0 && (
+            <div className="mb-3">
               {tree.inputs.map((input) => (
-                <div
+                <Input
                   key={input.name}
-                  onClick={
-                    input.node ? () => setSelectedNode(input.node) : undefined
-                  }
-                  className={`py-0.5 text-xs flex items-center gap-1.5 ${input.node ? 'cursor-pointer hover:bg-bg-card/50 rounded px-1 -ml-1' : ''}`}
-                >
-                  <span
-                    className={`text-[10px] ${input.status === 'Connected' ? 'text-green' : 'text-red'}`}
-                  >
-                    ●
-                  </span>
-                  <span className="text-magenta font-bold">{input.name}</span>
-                  <span className="text-text-dim">[input]</span>
-                  <span className="ml-auto flex items-center gap-2 tabular-nums text-[10px]">
-                    <span className="text-green">
-                      {formatCount(input.accepted)}
-                    </span>
-                    {input.rejected > 0 && (
-                      <span className="text-red">
-                        {formatCount(input.rejected)} rej
-                      </span>
-                    )}
-                  </span>
-                </div>
+                  input={input}
+                  onSelect={setSelectedNode}
+                />
               ))}
             </div>
           )}

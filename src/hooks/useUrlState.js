@@ -1,8 +1,7 @@
 import { useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-// State kept in the URL query string, so it survives reloads and switching to
-// another instance (the instance links keep the query string). The parameter
+// State kept in the URL query string, so it survives reloads. The parameter
 // is dropped when set back to its default.
 export default function useUrlState(key, defaultValue) {
   const [searchParams, setSearchParams] = useSearchParams();
