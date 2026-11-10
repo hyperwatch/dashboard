@@ -93,7 +93,9 @@ export default function useWebSocket(
         try {
           const entry = JSON.parse(event.data);
           if (!historyLoaded) {
-            liveBuffer.push(entry);
+            // Filtered like addEntry: history can take seconds (read from
+            // disk), and the unfiltered stream would fill the list meanwhile
+            if (!filter || filter(entry)) liveBuffer.push(entry);
           } else {
             addEntry(entry);
           }
